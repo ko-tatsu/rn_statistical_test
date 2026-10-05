@@ -1,5 +1,7 @@
 # rn_statistical_test
 
+Originally created in 2019 as one of my early Python projects.
+
 A small Python project for experimenting with statistical tests of pseudo-random number sequences.
 
 This repository was originally created in **December 2019** as an early Python learning project.  
