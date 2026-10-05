@@ -1,96 +1,86 @@
-import random
 import math
-import matplotlib.pyplot as plt
-import numpy as np
-import scipy as sp
+import random
+
 from scipy import stats
-from scipy.stats import chi2
 
 
-N = 10000       #number of random numbers
-r = [0.0] * N   #random numbers array
-X = [0.0] * N   #delay-k statistiacal test　array
-Y = [0.0] * N   #equiprobability statistiacal test array
+N = 10000
+DELAY_K = 1
+NUM_BINS = 10
+ALPHA = 0.05
+
+
+def generate_random_numbers(n):
+    """Generate n pseudo-random numbers in the interval [0, 1)."""
+    return [random.random() for _ in range(n)]
+
+
+def delay_k_test(values, k=DELAY_K, alpha=ALPHA):
+    """Perform a delay-k test for serial dependence."""
+    n = len(values)
+    sum_product = sum(
+        values[i] * values[(i + k) % n]
+        for i in range(n)
+    )
+
+    z = (12.0 / n * sum_product - 3.0) * math.sqrt(n / 13.0)
+    critical_value = stats.norm.ppf(1.0 - alpha / 2.0)
+    passed = abs(z) < critical_value
+
+    print("######### delay-k statistical test #########")
+    print(f"N: {n}")
+    print(f"k: {k}")
+    print(f"z value: {z:.6f}")
+    print(f"critical value (two-sided, alpha={alpha}): ±{critical_value:.6f}")
+    print("Result:", "PASS" if passed else "FAIL")
+    print()
+
+    return z, passed
+
+
+def equiprobability_test(values, num_bins=NUM_BINS, alpha=ALPHA):
+    """Perform a chi-square equiprobability test."""
+    n = len(values)
+    counts = [0] * num_bins
+
+    for value in values:
+        index = min(int(value * num_bins), num_bins - 1)
+        counts[index] += 1
+
+    expected = n / num_bins
+    chi_square = sum(
+        (observed - expected) ** 2 / expected
+        for observed in counts
+    )
+
+    degrees_of_freedom = num_bins - 1
+    critical_value = stats.chi2.isf(alpha, degrees_of_freedom)
+    passed = chi_square < critical_value
+
+    print("######### equiprobability statistical test #########")
+    print(f"N: {n}")
+    print(f"number of bins: {num_bins}")
+    print("histogram:")
+    for i, count in enumerate(counts):
+        print(f"  bin {i}: {count}")
+    print(f"expected count per bin: {expected:.2f}")
+    print(f"chi-square value: {chi_square:.6f}")
+    print(f"critical value (alpha={alpha}, df={degrees_of_freedom}): {critical_value:.6f}")
+    print("Result:", "PASS" if passed else "FAIL")
+    print()
+
+    return chi_square, passed
+
 
 def main():
-    i = 0
     print("Generate random numbers")
-    for i in range(0,N,1):
-        r[i] = random.random()
-    
-    deley_k_test(N, r)
-    hist(N, r)
-    print("test end")
+    values = generate_random_numbers(N)
 
-def deley_k_test(N, r):
-    print("######### delay-k statistiacal test #########\n")
-    i = 0
-    j = 0
-    k = 1 #delay-k test parameter
-    sum_cov = 0.0
-    count = 0
-    for i in range(0,N,1):
-        if((i + k) > (N - 1)):
-            j = i - N + k
-            X[i] = r[i]
-            Y[i] = r[j]
-            sum_cov += X[i] * Y[i]
-        else:
-            X[i] = r[i]
-            Y[i] = r[i + k]
-            sum_cov += X[i] * Y[i]
-    z = (12.0 / N * sum_cov - 3) * math.sqrt(N) / math.sqrt(13)
-    
-    if(-1.96 < z < 1.96):
-        count += 1
-    print("delal-k statistical value:", z)
-    if(count == 0):
-        print("count:",count, "irregralty OK",)
-    else:
-        print("count:",count, "No irregralty cheak the random nunmber sequnece\n")
+    delay_k_test(values)
+    equiprobability_test(values)
 
-def hist(N, r):
-    print("######### quiprobability statistiacal test #########\n")
-    i = 0
-    int_r = 0
-    numbin = 10
-    bin_weight = 10
-    S = 0.0
-    A = 0.0
-    print("num bin:", numbin)
-    
-    hist = [0] * (int(numbin) + 1)
-    S_array = np.zeros(((numbin),2))
+    print("Test end")
 
-    for i in range(0, N, 1):
-        int_r = int(r[i] * bin_weight)
-        hist[int_r] += 1
 
-    print("histgram")
-    for i in range(0, (numbin+1), 1):
-        print(i,hist[i])
-   
-    ex_value = int(N/(numbin))
-    print("kitaichi",ex_value)
-
-    for i in range(0, (numbin), 1):
-       S_array[i][1] = (math.pow(hist[i] - ex_value, 2) / ex_value)
-
-    print("S_array")
-    for i in range(0, (numbin), 1):
-        print(i, S_array[i][1])
-    
-    S = np.sum(S_array)
-    print("S", S)
-
-    p = 0.05
-    A = sp.stats.chi2.isf(p,(numbin-1))
-    print("A:", A)
-
-    if(S < A):
-        print("quiprobability OK\n")
-    else:
-         print("No quiprobability cheak the random nunmber sequnece\n")
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
